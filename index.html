@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Mirai Atelier | Sequencer</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/omggif/1.0.10/omggif.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script>
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "outline": "#9b8f7c",
+        "inverse-surface": "#e1e2e9",
+        "surface-bright": "#36393f",
+        "background": "#111319",
+        "surface-tint": "#f0c052",
+        "on-surface-variant": "#d2c5b0",
+        "error": "#ffb4ab",
+        "surface-container-high": "#272a30",
+        "tertiary": "#5ef3c5",
+        "surface-container-lowest": "#0b0e13",
+        "surface-container-low": "#191c21",
+        "surface-container": "#1d2025",
+        "surface": "#111319",
+        "on-background": "#e1e2e9",
+        "surface-variant": "#32353a",
+        "on-surface": "#e1e2e9",
+        "primary-container": "#e8b84b",
+        "outline-variant": "#4e4636",
+        "on-primary": "#402d00",
+        "surface-container-highest": "#32353a",
+        "on-error": "#690005",
+        "primary": "#ffd57e",
+        "on-primary-container": "#644900",
+      },
+      fontFamily: {
+        headline: ["Inter", "sans-serif"],
+        body: ["Inter", "sans-serif"],
+        label: ["Inter", "sans-serif"]
+      }
+    }
+  }
+}
+</script>
+<style>
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+.glass-panel {
+  background: rgba(39, 42, 48, 0.85);
+  backdrop-filter: blur(20px);
+}
+.gold-dashed {
+  background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' stroke='%23e8b84b' stroke-width='2' stroke-dasharray='12%2c12' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+}
+.gold-dashed-active {
+  background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' stroke='%23ffd57e' stroke-width='2.5' stroke-dasharray='12%2c12' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+}
+.corner-bracket-tl { border-top: 2px solid #e8b84b; border-left: 2px solid #e8b84b; width: 12px; height: 12px; position: absolute; top: 0; left: 0; }
+.corner-bracket-tr { border-top: 2px solid #e8b84b; border-right: 2px solid #e8b84b; width: 12px; height: 12px; position: absolute; top: 0; right: 0; }
+.corner-bracket-bl { border-bottom: 2px solid #e8b84b; border-left: 2px solid #e8b84b; width: 12px; height: 12px; position: absolute; bottom: 0; left: 0; }
+.corner-bracket-br { border-bottom: 2px solid #e8b84b; border-right: 2px solid #e8b84b; width: 12px; height: 12px; position: absolute; bottom: 0; right: 0; }
+
+input[type=range] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: transparent;
+  outline: none;
+  position: relative;
+  z-index: 2;
+  cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffd57e;
+  box-shadow: 0 0 10px rgba(232,184,75,0.5);
+  cursor: pointer;
+}
+input[type=range]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffd57e;
+  border: none;
+  box-shadow: 0 0 10px rgba(232,184,75,0.5);
+  cursor: pointer;
+}
+.progress-fill {
+  height: 2px;
+  background: linear-gradient(90deg, #ffd57e, #e8b84b);
+  border-radius: 1px;
+  transition: width 0.25s ease;
+}
+select {
+  background-color: #0b0e13;
+  color: #e1e2e9;
+}
+select option {
+  background-color: #1d2025;
+}
+body {
+  min-height: max(884px, 100dvh);
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.spin {
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+</style>
+</head>
+<body class="bg-background text-on-surface font-body min-h-screen flex flex-col">
+
+<!-- Hidden file input -->
+<input type="file" id="fileInput" accept="image/gif" class="hidden"/>
+
+<!-- Header -->
+<header class="bg-[#111319]/90 backdrop-blur-xl fixed top-0 z-50 w-full shadow-[0_20px_40px_rgba(232,184,75,0.06)]">
+  <div class="flex justify-between items-center px-6 h-20 max-w-lg mx-auto">
+    <div class="flex items-center gap-3">
+      <span class="material-symbols-outlined text-[#e8b84b] text-xl" style="font-variation-settings:'FILL' 1;">auto_awesome</span>
+      <h1 class="text-xl font-black tracking-[-0.04em] text-[#e8b84b] uppercase">NOIR ATELIER</h1>
+    </div>
+    <div class="flex items-center gap-2">
+      <button id="resetBtn" title="Reset" class="hidden w-9 h-9 rounded-full bg-surface-container-highest/60 hover:bg-surface-container-highest transition-all flex items-center justify-center">
+        <span class="material-symbols-outlined text-outline" style="font-size:18px;">restart_alt</span>
+      </button>
+      <div id="avatarEl" class="w-9 h-9 rounded-full bg-surface-container-highest border border-outline-variant/20 overflow-hidden">
+        <img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBXS5bCmFuVYzV072YLTqUBNlSeAjFJKC1RkGccsQjtQEd1mc1kVPD_ku7JPLCv3aJc_c5nSUWjBWh3F1pA_iTezEfrb88F7QsKTYnMnEHprpEZ1baPJq5g1YrgRxMd5r2ybtFrsqNarM_XYBVMm0x8HiJLpvXhCpqPpg9b94P4entDZIXpGU2jHIDEwzNLuK81zaW0qUg_h24pzCpSeixgAMq9k0HB2iYPxJ1h_DZWlsE1Y-YOeTQfdrUlDFlWbllIOhv7rTPNt-zV" alt=""/>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- Main -->
+<main class="flex-1 pt-28 pb-52 px-6 max-w-lg mx-auto w-full space-y-8">
+
+  <!-- Upload Zone -->
+  <section class="relative">
+    <div id="dropZone" class="gold-dashed rounded-xl h-64 flex flex-col items-center justify-center gap-4 bg-surface-container-lowest/50 cursor-pointer select-none transition-all duration-200">
+      <span class="material-symbols-outlined text-primary text-5xl opacity-80" style="font-variation-settings:'FILL' 1;">movie_filter</span>
+      <div class="text-center pointer-events-none">
+        <p class="font-headline font-bold text-lg tracking-tight text-on-surface">Drop GIF Here</p>
+        <p class="font-label text-xs tracking-widest text-outline uppercase mt-1">or tap to browse</p>
+      </div>
+    </div>
+    <div class="corner-bracket-tl -m-1"></div>
+    <div class="corner-bracket-tr -m-1"></div>
+    <div class="corner-bracket-bl -m-1"></div>
+    <div class="corner-bracket-br -m-1"></div>
+  </section>
+
+  <!-- Metadata -->
+  <section id="metaSection" class="hidden bg-surface-container-low rounded-xl p-5 space-y-3">
+    <div class="flex items-center justify-between">
+      <span class="font-label text-[10px] font-bold tracking-[0.1em] uppercase text-outline">Source File</span>
+      <div class="w-2 h-2 rounded-full bg-tertiary"></div>
+    </div>
+    <div class="grid grid-cols-3 gap-4">
+      <div>
+        <p id="metaFilename" class="text-sm font-semibold text-on-surface truncate">—</p>
+        <p class="font-label text-[10px] text-outline tracking-wide mt-0.5">Filename</p>
+      </div>
+      <div>
+        <p id="metaDimensions" class="text-sm font-semibold text-on-surface">—</p>
+        <p class="font-label text-[10px] text-outline tracking-wide mt-0.5">Resolution</p>
+      </div>
+      <div>
+        <p id="metaFrames" class="text-sm font-semibold text-on-surface">—</p>
+        <p class="font-label text-[10px] text-outline tracking-wide mt-0.5">Frames</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Configuration -->
+  <section class="space-y-6">
+    <div class="flex items-center gap-2">
+      <span class="font-label text-xs font-bold tracking-[0.2em] uppercase text-primary">Configuration</span>
+      <div class="h-[1px] flex-1 bg-outline-variant/20"></div>
+    </div>
+    <div class="grid grid-cols-1 gap-4">
+
+      <!-- Output Format -->
+      <div class="bg-surface-container-low p-5 rounded-xl space-y-3">
+        <label class="font-label text-[10px] font-bold tracking-[0.1em] uppercase text-outline">Output Format</label>
+        <div class="flex gap-2">
+          <button data-format="png" class="format-btn active-format flex-1 py-3 rounded-lg bg-primary-container text-on-primary-container text-xs font-bold transition-all">PNG</button>
+          <button data-format="jpeg" class="format-btn flex-1 py-3 rounded-lg bg-surface-container text-on-surface-variant text-xs font-bold hover:bg-surface-container-high transition-all">JPEG</button>
+          <button data-format="webp" class="format-btn flex-1 py-3 rounded-lg bg-surface-container text-on-surface-variant text-xs font-bold hover:bg-surface-container-high transition-all">WEBP</button>
+        </div>
+      </div>
+
+      <!-- Naming Convention -->
+      <div class="bg-surface-container-low p-5 rounded-xl space-y-3">
+        <label class="font-label text-[10px] font-bold tracking-[0.1em] uppercase text-outline">Naming Convention</label>
+        <div class="relative">
+          <select id="namingSelect" class="w-full bg-surface-container-lowest border-none text-on-surface text-sm rounded-lg py-3 px-4 appearance-none focus:ring-1 focus:ring-primary/30 outline-none">
+            <option value="frame_####">frame_0000</option>
+            <option value="frame_###">frame_000</option>
+            <option value="img_####">img_0000</option>
+            <option value="####">0000 (numeric only)</option>
+          </select>
+          <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-base">expand_more</span>
+        </div>
+      </div>
+
+      <!-- Scale Factor -->
+      <div class="bg-surface-container-low p-5 rounded-xl space-y-4">
+        <div class="flex justify-between items-end">
+          <label class="font-label text-[10px] font-bold tracking-[0.1em] uppercase text-outline">Scale Factor</label>
+          <span id="scaleLabel" class="text-primary font-bold text-sm">1.0x</span>
+        </div>
+        <div class="relative flex items-center h-6">
+          <div class="absolute h-1 w-full bg-surface-container-highest rounded-full"></div>
+          <div id="scaleFill" class="absolute h-1 bg-primary-container rounded-full pointer-events-none" style="width:50%"></div>
+          <input id="scaleSlider" type="range" min="0" max="100" value="50"/>
+        </div>
+        <div class="flex justify-between font-label text-[10px] text-outline px-0.5">
+          <span>0.5X</span><span>1.0X</span><span>2.0X</span>
+        </div>
+      </div>
+
+      <!-- Quality (hidden for PNG) -->
+      <div id="qualitySection" class="hidden bg-surface-container-low p-5 rounded-xl space-y-4">
+        <div class="flex justify-between items-end">
+          <label class="font-label text-[10px] font-bold tracking-[0.1em] uppercase text-outline">Quality</label>
+          <span id="qualityLabel" class="text-primary font-bold text-sm">95%</span>
+        </div>
+        <div class="relative flex items-center h-6">
+          <div class="absolute h-1 w-full bg-surface-container-highest rounded-full"></div>
+          <div id="qualityFill" class="absolute h-1 bg-primary-container rounded-full pointer-events-none" style="width:94.4%"></div>
+          <input id="qualitySlider" type="range" min="10" max="100" value="95"/>
+        </div>
+        <div class="flex justify-between font-label text-[10px] text-outline px-0.5">
+          <span>10%</span><span>55%</span><span>100%</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Progress -->
+  <section id="progressSection" class="hidden space-y-4">
+    <div class="flex items-center gap-2">
+      <span class="font-label text-xs font-bold tracking-[0.2em] uppercase text-primary">Processing</span>
+      <div class="h-[1px] flex-1 bg-outline-variant/20"></div>
+    </div>
+    <div class="bg-surface-container-low rounded-xl p-5 space-y-3">
+      <div class="flex justify-between items-center">
+        <span id="progressLabel" class="font-label text-[10px] text-outline uppercase tracking-widest">Initializing...</span>
+        <span id="progressPct" class="text-primary font-bold text-xs">0%</span>
+      </div>
+      <div class="h-[2px] bg-surface-container-highest rounded-full overflow-hidden">
+        <div id="progressBar" class="progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Preview -->
+  <section id="previewSection" class="hidden space-y-4">
+    <div class="flex items-center gap-2">
+      <span class="font-label text-xs font-bold tracking-[0.2em] uppercase text-primary">Preview</span>
+      <div class="h-[1px] flex-1 bg-outline-variant/20"></div>
+    </div>
+    <div class="bg-surface-container-lowest rounded-2xl overflow-hidden border border-outline-variant/10">
+      <div class="aspect-video relative bg-black flex items-center justify-center">
+        <img id="gifPreview" class="w-full h-full object-contain" src="" alt="GIF preview"/>
+      </div>
+      <div class="p-4 bg-surface-container-low">
+        <div class="flex justify-between items-center mb-3">
+          <span id="frameGridLabel" class="text-[10px] font-bold text-outline uppercase tracking-widest">Extracted Frames (0)</span>
+          <button id="viewAllBtn" class="hidden text-[10px] text-primary underline underline-offset-4">VIEW ALL</button>
+        </div>
+        <div id="frameGrid" class="grid grid-cols-4 gap-2"></div>
+        <!-- Expanded frame grid (all frames) -->
+        <div id="allFramesGrid" class="hidden mt-3 grid grid-cols-4 gap-2 max-h-80 overflow-y-auto pr-1"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Log -->
+  <section id="logSection" class="hidden">
+    <div id="logContainer" class="bg-surface-container-lowest rounded-xl p-4 space-y-1 font-mono text-[11px] max-h-40 overflow-y-auto"></div>
+  </section>
+
+</main>
+
+<!-- CTA (above bottom nav) -->
+<div class="fixed left-0 right-0 z-40 px-6" style="bottom:76px">
+  <div class="max-w-lg mx-auto">
+    <button id="convertBtn" disabled class="w-full py-4 bg-gradient-to-r from-primary to-primary-container rounded-xl text-on-primary font-black text-sm tracking-[0.1em] uppercase shadow-[0_10px_30px_rgba(232,184,75,0.2)] flex items-center justify-center gap-2 opacity-40 cursor-not-allowed transition-all duration-300">
+      <span id="convertBtnText">CONVERT &amp; EXPORT</span>
+      <span id="convertBtnIcon" class="material-symbols-outlined text-lg" style="font-variation-settings:'FILL' 1;">bolt</span>
+    </button>
+  </div>
+</div>
+
+<!-- Bottom Nav -->
+<nav class="fixed bottom-0 left-0 w-full z-50 bg-[#191c21] px-6 py-3 flex justify-around items-center border-t border-outline-variant/10">
+  <div class="flex flex-col items-center gap-1 text-gray-500 cursor-pointer">
+    <span class="material-symbols-outlined text-xl">grid_view</span>
+    <span class="text-[10px] font-light tracking-wide">Studio</span>
+  </div>
+  <div class="flex flex-col items-center gap-1 text-[#e8b84b]">
+    <span class="material-symbols-outlined text-xl" style="font-variation-settings:'FILL' 1;">movie_filter</span>
+    <span class="text-[10px] font-bold tracking-wide">Sequencer</span>
+  </div>
+  <div class="flex flex-col items-center gap-1 text-gray-500 cursor-pointer">
+    <span class="material-symbols-outlined text-xl">folder_special</span>
+    <span class="text-[10px] font-light tracking-wide">Archive</span>
+  </div>
+  <div class="flex flex-col items-center gap-1 text-gray-500 cursor-pointer">
+    <span class="material-symbols-outlined text-xl">tune</span>
+    <span class="text-[10px] font-light tracking-wide">Settings</span>
+  </div>
+</nav>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+const state = {
+  gifFile: null,
+  gifObjectURL: null,
+  gifArrayBuffer: null,
+  frameCanvases: [],
+  width: 0,
+  height: 0,
+  frameCount: 0,
+  outputFormat: 'png',
+  namingConvention: 'frame_####',
+  scaleFactor: 1.0,
+  quality: 0.95,
+  isProcessing: false,
+  viewingAll: false
+};
+
+// ── DOM refs ───────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const dropZone      = $('dropZone');
+const fileInput     = $('fileInput');
+const resetBtn      = $('resetBtn');
+const avatarEl      = $('avatarEl');
+const metaSection   = $('metaSection');
+const previewSection = $('previewSection');
+const progressSection = $('progressSection');
+const logSection    = $('logSection');
+const gifPreview    = $('gifPreview');
+const frameGrid     = $('frameGrid');
+const allFramesGrid = $('allFramesGrid');
+const frameGridLabel = $('frameGridLabel');
+const viewAllBtn    = $('viewAllBtn');
+const progressBar   = $('progressBar');
+const progressLabel = $('progressLabel');
+const progressPct   = $('progressPct');
+const convertBtn    = $('convertBtn');
+const convertBtnText = $('convertBtnText');
+const convertBtnIcon = $('convertBtnIcon');
+const scaleSlider   = $('scaleSlider');
+const scaleLabel    = $('scaleLabel');
+const scaleFill     = $('scaleFill');
+const qualitySection = $('qualitySection');
+const qualitySlider = $('qualitySlider');
+const qualityLabel  = $('qualityLabel');
+const qualityFill   = $('qualityFill');
+const namingSelect  = $('namingSelect');
+const logContainer  = $('logContainer');
+
+// ── Utilities ──────────────────────────────────────────────────────────────
+const yield_ = () => new Promise(r => setTimeout(r, 0));
+
+function log(msg, type = 'info') {
+  logSection.classList.remove('hidden');
+  const colors = { info: 'text-on-surface-variant', success: 'text-[#5ef3c5]', error: 'text-[#ffb4ab]', warn: 'text-primary' };
+  const el = document.createElement('div');
+  el.className = colors[type] || colors.info;
+  const t = new Date().toLocaleTimeString('en-US', { hour12: false });
+  el.textContent = `[${t}] ${msg}`;
+  logContainer.appendChild(el);
+  logContainer.scrollTop = logContainer.scrollHeight;
+}
+
+function setProgress(pct, label) {
+  progressBar.style.width = `${pct}%`;
+  progressPct.textContent = `${Math.round(pct)}%`;
+  if (label) progressLabel.textContent = label;
+}
+
+function generateFilename(idx, convention, fmt) {
+  const ext = fmt === 'jpeg' ? 'jpg' : fmt;
+  const pad4 = s => String(s).padStart(4, '0');
+  const pad3 = s => String(s).padStart(3, '0');
+  switch (convention) {
+    case 'frame_###': return `frame_${pad3(idx)}.${ext}`;
+    case 'img_####':  return `img_${pad4(idx)}.${ext}`;
+    case '####':      return `${pad4(idx)}.${ext}`;
+    default:          return `frame_${pad4(idx)}.${ext}`;
+  }
+}
+
+function makeThumbnailDataURL(canvas) {
+  const size = 120;
+  const thumb = document.createElement('canvas');
+  thumb.width = size;
+  thumb.height = size;
+  const ctx = thumb.getContext('2d');
+  const aspect = canvas.width / canvas.height;
+  let sw, sh, sx, sy;
+  if (aspect >= 1) {
+    sh = canvas.height;
+    sw = sh;
+    sx = Math.round((canvas.width - sw) / 2);
+    sy = 0;
+  } else {
+    sw = canvas.width;
+    sh = sw;
+    sx = 0;
+    sy = Math.round((canvas.height - sh) / 2);
+  }
+  ctx.drawImage(canvas, sx, sy, sw, sh, 0, 0, size, size);
+  return thumb.toDataURL('image/jpeg', 0.7);
+}
+
+// ── File Input ─────────────────────────────────────────────────────────────
+dropZone.addEventListener('click', () => !state.isProcessing && fileInput.click());
+fileInput.addEventListener('change', e => {
+  if (e.target.files[0]) handleFile(e.target.files[0]);
+  fileInput.value = '';
+});
+
+dropZone.addEventListener('dragenter', e => {
+  e.preventDefault();
+  dropZone.classList.remove('gold-dashed');
+  dropZone.classList.add('gold-dashed-active', 'shadow-[0_0_30px_rgba(232,184,75,0.2)]');
+});
+dropZone.addEventListener('dragover', e => e.preventDefault());
+dropZone.addEventListener('dragleave', () => {
+  dropZone.classList.add('gold-dashed');
+  dropZone.classList.remove('gold-dashed-active', 'shadow-[0_0_30px_rgba(232,184,75,0.2)]');
+});
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.add('gold-dashed');
+  dropZone.classList.remove('gold-dashed-active', 'shadow-[0_0_30px_rgba(232,184,75,0.2)]');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+
+function handleFile(file) {
+  if (!file.type.includes('gif') && !file.name.toLowerCase().endsWith('.gif')) {
+    log('Only GIF files are supported.', 'error');
+    return;
+  }
+  if (state.gifObjectURL) URL.revokeObjectURL(state.gifObjectURL);
+  state.gifFile = file;
+  state.gifObjectURL = URL.createObjectURL(file);
+  gifPreview.src = state.gifObjectURL;
+  log(`Loading: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`, 'info');
+  const reader = new FileReader();
+  reader.onload = e => { state.gifArrayBuffer = e.target.result; parseGIF(); };
+  reader.readAsArrayBuffer(file);
+}
+
+// ── GIF Parsing ────────────────────────────────────────────────────────────
+async function parseGIF() {
+  progressSection.classList.remove('hidden');
+  setProgress(0, 'Parsing GIF...');
+  await yield_();
+
+  try {
+    const gr = new GifReader(new Uint8Array(state.gifArrayBuffer));
+    state.width  = gr.width;
+    state.height = gr.height;
+    state.frameCount = gr.numFrames();
+
+    log(`Dimensions: ${state.width}×${state.height} · ${state.frameCount} frame${state.frameCount !== 1 ? 's' : ''}`, 'info');
+
+    $('metaFilename').textContent   = state.gifFile.name.length > 18 ? state.gifFile.name.slice(0, 15) + '…' : state.gifFile.name;
+    $('metaDimensions').textContent = `${state.width}×${state.height}`;
+    $('metaFrames').textContent     = `${state.frameCount}`;
+    metaSection.classList.remove('hidden');
+
+    state.frameCanvases = [];
+
+    // Composite canvas persists across frames
+    const cCanvas = document.createElement('canvas');
+    cCanvas.width  = state.width;
+    cCanvas.height = state.height;
+    const cCtx = cCanvas.getContext('2d');
+
+    const tCanvas = document.createElement('canvas');
+    tCanvas.width  = state.width;
+    tCanvas.height = state.height;
+    const tCtx = tCanvas.getContext('2d');
+
+    let prevInfo = null;
+    let savedImageData = null;
+
+    for (let i = 0; i < state.frameCount; i++) {
+      const fi = gr.frameInfo(i);
+
+      // Dispose previous frame
+      if (prevInfo !== null) {
+        switch (prevInfo.disposal) {
+          case 2:
+            cCtx.clearRect(prevInfo.x, prevInfo.y, prevInfo.width, prevInfo.height);
+            break;
+          case 3:
+            if (savedImageData) { cCtx.putImageData(savedImageData, 0, 0); savedImageData = null; }
+            break;
+          // 0, 1: leave as-is
+        }
+      }
+
+      // Save state before drawing if this frame uses disposal 3
+      if (fi.disposal === 3) {
+        savedImageData = cCtx.getImageData(0, 0, state.width, state.height);
+      }
+
+      // Decode and blit
+      const pixels = new Uint8ClampedArray(state.width * state.height * 4);
+      gr.decodeAndBlitFrameRGBA(i, pixels);
+      tCtx.putImageData(new ImageData(pixels, state.width, state.height), 0, 0);
+      cCtx.drawImage(tCanvas, 0, 0);
+
+      // Capture composited frame
+      const fCanvas = document.createElement('canvas');
+      fCanvas.width  = state.width;
+      fCanvas.height = state.height;
+      fCanvas.getContext('2d').drawImage(cCanvas, 0, 0);
+      state.frameCanvases.push(fCanvas);
+
+      prevInfo = fi;
+      setProgress(((i + 1) / state.frameCount) * 100, `Extracting frame ${i + 1} of ${state.frameCount}`);
+      if (i % 5 === 4) await yield_();
+    }
+
+    renderThumbnails();
+    previewSection.classList.remove('hidden');
+    resetBtn.classList.remove('hidden');
+    avatarEl.classList.add('hidden');
+
+    // Enable export button
+    convertBtn.disabled = false;
+    convertBtn.classList.remove('opacity-40', 'cursor-not-allowed');
+    convertBtn.classList.add('cursor-pointer', 'hover:shadow-[0_10px_40px_rgba(232,184,75,0.4)]');
+
+    setProgress(100, 'Ready to export');
+    log(`Extraction complete — ${state.frameCount} frames ready`, 'success');
+
+  } catch (err) {
+    log(`Parse error: ${err.message}`, 'error');
+    setProgress(0, 'Parse failed');
+  }
+}
+
+// ── Thumbnails ─────────────────────────────────────────────────────────────
+function makeThumbnailEl(dataURL, label) {
+  const wrap = document.createElement('div');
+  wrap.className = 'aspect-square bg-surface-container rounded-md overflow-hidden border border-outline-variant/10 relative';
+  const img = document.createElement('img');
+  img.src = dataURL;
+  img.className = 'w-full h-full object-cover';
+  wrap.appendChild(img);
+  if (label) {
+    const lbl = document.createElement('span');
+    lbl.className = 'absolute bottom-0.5 left-0 right-0 text-center text-[8px] font-bold text-on-surface/60';
+    lbl.textContent = label;
+    wrap.appendChild(lbl);
+  }
+  return wrap;
+}
+
+function renderThumbnails() {
+  frameGrid.innerHTML = '';
+  allFramesGrid.innerHTML = '';
+  state.viewingAll = false;
+  allFramesGrid.classList.add('hidden');
+
+  const total = state.frameCanvases.length;
+  const SHOW = 4;
+  const overflow = total > SHOW ? total - (SHOW - 1) : 0;
+  const showCount = overflow > 0 ? SHOW - 1 : Math.min(total, SHOW);
+
+  for (let i = 0; i < showCount; i++) {
+    frameGrid.appendChild(makeThumbnailEl(makeThumbnailDataURL(state.frameCanvases[i])));
+  }
+
+  if (overflow > 0) {
+    const wrap = document.createElement('div');
+    wrap.className = 'aspect-square bg-surface-container rounded-md border border-primary/30 relative flex items-center justify-center overflow-hidden';
+    const img = document.createElement('img');
+    img.src = makeThumbnailDataURL(state.frameCanvases[showCount]);
+    img.className = 'w-full h-full object-cover opacity-30';
+    const lbl = document.createElement('span');
+    lbl.className = 'absolute text-[11px] font-black text-primary';
+    lbl.textContent = `+${overflow}`;
+    wrap.appendChild(img);
+    wrap.appendChild(lbl);
+    frameGrid.appendChild(wrap);
+  }
+
+  frameGridLabel.textContent = `Extracted Frames (${total})`;
+
+  if (total > 4) {
+    viewAllBtn.classList.remove('hidden');
+    // Populate all-frames grid lazily
+    for (let i = 0; i < total; i++) {
+      allFramesGrid.appendChild(makeThumbnailEl(makeThumbnailDataURL(state.frameCanvases[i]), `#${i}`));
+    }
+  } else {
+    viewAllBtn.classList.add('hidden');
+  }
+}
+
+viewAllBtn.addEventListener('click', () => {
+  state.viewingAll = !state.viewingAll;
+  allFramesGrid.classList.toggle('hidden', !state.viewingAll);
+  viewAllBtn.textContent = state.viewingAll ? 'COLLAPSE' : 'VIEW ALL';
+});
+
+// ── Settings ───────────────────────────────────────────────────────────────
+document.querySelectorAll('.format-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.format-btn').forEach(b => {
+      b.classList.remove('bg-primary-container', 'text-on-primary-container');
+      b.classList.add('bg-surface-container', 'text-on-surface-variant');
+    });
+    btn.classList.remove('bg-surface-container', 'text-on-surface-variant');
+    btn.classList.add('bg-primary-container', 'text-on-primary-container');
+    state.outputFormat = btn.dataset.format;
+    qualitySection.classList.toggle('hidden', state.outputFormat === 'png');
+  });
+});
+
+namingSelect.addEventListener('change', () => { state.namingConvention = namingSelect.value; });
+
+scaleSlider.addEventListener('input', () => {
+  const v = parseInt(scaleSlider.value);
+  state.scaleFactor = parseFloat((0.5 + (v / 100) * 1.5).toFixed(2));
+  scaleLabel.textContent = `${state.scaleFactor.toFixed(1)}x`;
+  scaleFill.style.width = `${v}%`;
+});
+
+qualitySlider.addEventListener('input', () => {
+  const v = parseInt(qualitySlider.value);
+  state.quality = v / 100;
+  qualityLabel.textContent = `${v}%`;
+  qualityFill.style.width = `${((v - 10) / 90) * 100}%`;
+});
+
+// ── Export ─────────────────────────────────────────────────────────────────
+convertBtn.addEventListener('click', async () => {
+  if (state.isProcessing || !state.frameCanvases.length) return;
+  await convertAndExport();
+});
+
+async function convertAndExport() {
+  state.isProcessing = true;
+
+  // Disable button
+  convertBtn.disabled = true;
+  convertBtn.classList.add('opacity-70', 'cursor-not-allowed');
+  convertBtn.classList.remove('cursor-pointer');
+  convertBtnText.textContent = 'PROCESSING...';
+  convertBtnIcon.classList.add('spin');
+  convertBtnIcon.textContent = 'sync';
+
+  progressSection.classList.remove('hidden');
+
+  try {
+    const mimeType = state.outputFormat === 'png' ? 'image/png'
+                   : state.outputFormat === 'jpeg' ? 'image/jpeg'
+                   : 'image/webp';
+    const quality = state.outputFormat === 'png' ? undefined : state.quality;
+
+    const scaledW = Math.max(1, Math.round(state.width  * state.scaleFactor));
+    const scaledH = Math.max(1, Math.round(state.height * state.scaleFactor));
+
+    log(`Exporting ${state.frameCount} frames → ${scaledW}×${scaledH} ${state.outputFormat.toUpperCase()} (scale ${state.scaleFactor}x)`, 'info');
+
+    const zip = new JSZip();
+    const folderName = `image_sequence_${scaledW}x${scaledH}`;
+    const folder = zip.folder(folderName);
+
+    const eCanvas = document.createElement('canvas');
+    eCanvas.width  = scaledW;
+    eCanvas.height = scaledH;
+    const eCtx = eCanvas.getContext('2d');
+
+    for (let i = 0; i < state.frameCanvases.length; i++) {
+      eCtx.clearRect(0, 0, scaledW, scaledH);
+      eCtx.drawImage(state.frameCanvases[i], 0, 0, scaledW, scaledH);
+
+      const filename = generateFilename(i, state.namingConvention, state.outputFormat);
+      const blob = await new Promise(r => eCanvas.toBlob(r, mimeType, quality));
+      const buf  = await blob.arrayBuffer();
+      folder.file(filename, buf);
+
+      setProgress(((i + 1) / state.frameCount) * 100, `Processing frame ${i + 1} of ${state.frameCount}`);
+      if (i % 5 === 4) await yield_();
+    }
+
+    folder.file('_README.txt', buildREADME(scaledW, scaledH));
+
+    setProgress(100, 'Packaging ZIP...');
+    log('Building ZIP...', 'info');
+
+    const zipBlob = await zip.generateAsync({ type: 'blob' }, meta => {
+      setProgress(meta.percent, `Compressing (${Math.round(meta.percent)}%)`);
+    });
+
+    const url = URL.createObjectURL(zipBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${folderName}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    setProgress(100, 'Export complete');
+    log(`Downloaded: ${folderName}.zip  (${state.frameCount} frames · ${(zipBlob.size / 1024).toFixed(0)} KB)`, 'success');
+
+  } catch (err) {
+    log(`Export failed: ${err.message}`, 'error');
+    setProgress(0, 'Export failed');
+  } finally {
+    state.isProcessing = false;
+    convertBtnText.textContent = 'CONVERT & EXPORT';
+    convertBtnIcon.classList.remove('spin');
+    convertBtnIcon.textContent = 'bolt';
+    convertBtn.disabled = false;
+    convertBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+    convertBtn.classList.add('cursor-pointer', 'hover:shadow-[0_10px_40px_rgba(232,184,75,0.4)]');
+  }
+}
+
+function buildREADME(w, h) {
+  const nameSample = generateFilename(1, state.namingConvention, state.outputFormat);
+  return [
+    'MIRAI ATELIER — GIF Image Sequence Export',
+    '==========================================',
+    `Resolution : ${w} × ${h} px`,
+    `Frames     : ${state.frameCount}`,
+    `Format     : ${state.outputFormat.toUpperCase()}`,
+    `Naming     : ${nameSample} (zero-padded index)`,
+    `Generated  : ${new Date().toISOString()}`,
+    '',
+    'UNREAL ENGINE 5 — IMPORT GUIDE',
+    '-------------------------------',
+    '1. Drag this folder into the UE5 Content Browser.',
+    '',
+    '2. Image Media Source (video-like playback):',
+    '   Right-click folder → Create Image Media Source',
+    '   Assign to a Media Player Blueprint.',
+    '',
+    '3. Flipbook / animated texture:',
+    '   Import all textures → Create Material.',
+    '   Use "FlipBook" node with a Texture Array.',
+    '',
+    'NOTE: PNG preserves alpha — recommended for VFX.',
+    '',
+    '----------------------------------------------',
+    'Mirai Atelier | Internal Tools | Sequencer v1.0',
+  ].join('\n');
+}
+
+// ── Reset ──────────────────────────────────────────────────────────────────
+resetBtn.addEventListener('click', resetTool);
+
+function resetTool() {
+  if (state.isProcessing) return;
+  if (state.gifObjectURL) URL.revokeObjectURL(state.gifObjectURL);
+
+  Object.assign(state, {
+    gifFile: null, gifObjectURL: null, gifArrayBuffer: null,
+    frameCanvases: [], width: 0, height: 0, frameCount: 0,
+    isProcessing: false, viewingAll: false
+  });
+
+  gifPreview.src = '';
+  frameGrid.innerHTML = '';
+  allFramesGrid.innerHTML = '';
+  allFramesGrid.classList.add('hidden');
+  frameGridLabel.textContent = 'Extracted Frames (0)';
+  viewAllBtn.classList.add('hidden');
+  viewAllBtn.textContent = 'VIEW ALL';
+
+  metaSection.classList.add('hidden');
+  previewSection.classList.add('hidden');
+  progressSection.classList.add('hidden');
+  logSection.classList.add('hidden');
+  logContainer.innerHTML = '';
+
+  convertBtn.disabled = true;
+  convertBtn.classList.add('opacity-40', 'cursor-not-allowed');
+  convertBtn.classList.remove('cursor-pointer', 'hover:shadow-[0_10px_40px_rgba(232,184,75,0.4)]');
+  convertBtnText.textContent = 'CONVERT & EXPORT';
+  convertBtnIcon.textContent = 'bolt';
+  convertBtnIcon.classList.remove('spin');
+
+  setProgress(0, 'Initializing...');
+
+  resetBtn.classList.add('hidden');
+  avatarEl.classList.remove('hidden');
+  fileInput.value = '';
+}
+</script>
+</body>
+</html>
